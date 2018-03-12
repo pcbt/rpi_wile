@@ -6,7 +6,8 @@ import ssl
 import subprocess
 import sys
 import os
-import wifi_lib as wl
+import datetime
+from wifi_lib import *
 
 try:
     from gi.repository import GObject
@@ -30,6 +31,23 @@ auth = {
 tls = {
   'ca_certs':"/etc/ssl/certs/ca-certificates.crt",
 }
+
+def restart_dhcdcp():
+    cmd = 'systemctl daemon-reload'
+    cmd_result = os.system(cmd)
+
+    cmd = 'systemctl restart dhcpcd'
+    cmd_result = os.system(cmd)
+
+def restart_bluetooth():
+    cmd = 'service bluetooth restart'
+    cmd_result = os.system(cmd)
+    print(cmd_result)
+    
+def reboot():
+    cmd = 'reboot'
+    cmd_result = os.system(cmd)
+    print(cmd_result)
 
 def ssid_scan():
     try:
@@ -65,15 +83,9 @@ def ssid_scan():
 
 def WifiScanner():
     wifilist = []
-    print("scanning")
-
     cells = wifi.Cell.all('wlan0')
-
-    print("scanning 1")
-
     for cell in cells:
         wifilist.append(cell.ssid)
-    print("scanning 2")
     return wifilist
 
 class SSIDScanner(Characteristic):
@@ -93,15 +105,16 @@ class SSIDScanner(Characteristic):
         self.value = []
         self.ssid_list = []
         self.list_index = 0
-        self.service_password = ''
+        self.service_password =''
+        self.ssid_password=''
 
     def ReadValue(self, options):
-        print("Data reading from Center BLE Device " + repr(self.value))
+        #print("Data reading from Center BLE Device " + repr(self.value))
         return self.value
 
     def WriteValue(self, value, options):
         if value is not None:
-            if str(value[0]) is 'P':
+            if str(value[0]) is 'B':
                 self.service_password=str(value[1])+str(value[2])+str(value[3])+str(value[4])
                 print(self.service_password)
                 reply = dbus.Array(signature='y')
@@ -110,7 +123,7 @@ class SSIDScanner(Characteristic):
             elif self.service_password == ble_password:
                 if str(value[0]) is 'S':
                     print('wifi search started')
-                    self.ssid_list = ssid_scan()
+                    self.ssid_list = WifiScanner()
                     self.list_index = 0
                     reply = dbus.Array(signature='y')
                     for i in "SSID scanning is completed!":
@@ -130,6 +143,42 @@ class SSIDScanner(Characteristic):
                             reply.append(dbus.Byte(i.encode('utf-8')))
 
                         self.list_index = self.list_index +1
+                elif str(value[0]) is 'P':
+                    ssid_key=''
+                    for i in range(1,len(value)):
+                        ssid_key+=str(value[i])
+                    self.ssid_password=ssid_key
+                    self.value=value
+
+                elif str(value[0]) is 'C':
+                    if self.ssid_list is None:
+                        reply = dbus.Array(signature='y')
+                        for i in "No SSID list!!":
+                            reply.append(dbus.Byte(i.encode('utf-8')))
+                    else:
+                        print(self.ssid_list[int(str(value[1]))]+' '+self.ssid_password)
+                        f = open('/etc/wpa_supplicant/wpa_supplicant.conf','a')
+
+                        new_ssid="""network={
+                        ssid='"""+self.ssid_list[int(str(value[1]))]+"""'
+                        psk='"""+self.ssid_password+"""'
+                        key_mgmt=WPA-PSK
+                        }"""
+
+                        f.write(new_ssid)
+                        f.flush()
+                        print('writing done')
+                        reply = dbus.Array(signature='y')
+                        for i in "SSID added to wpa_supplicant file!!":
+                            reply.append(dbus.Byte(i.encode('utf-8')))
+                elif str(value[0]) is 'R':
+                    reply = dbus.Array(signature='y')
+                    for i in "Rebooting!":
+                        reply.append(dbus.Byte(i.encode('utf-8')))
+                    reboot()
+
+
+
             else:
                 reply = dbus.Array(signature='y')
                 for i in "Password Incorrect!":
