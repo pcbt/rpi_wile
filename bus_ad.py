@@ -100,9 +100,12 @@ class SSIDScanner(Characteristic):
 
     def WriteValue(self, value, options):
         if value is not None:
-            device_password=str(value[0])+str(value[1])+str(value[2])+str(value[3])
-
-            if device_password is ble_password:
+            if str(value[0]) is 'P':
+                device_password=str(value[1])+str(value[2])+str(value[3])+str(value[4])
+                reply = dbus.Array(signature='y')
+                for i in "Password Enterred!":
+                    reply.append(dbus.Byte(i.encode('utf-8')))
+            elif device_password is ble_password:
                 if str(value[0]) is 'S':
                     print('wifi search started')
                     self.ssid_list = ssid_scan()
@@ -127,7 +130,7 @@ class SSIDScanner(Characteristic):
                         self.list_index = self.list_index +1
                 else:
                     reply = dbus.Array(signature='y')
-                    for i in "Password Incorrect":
+                    for i in "Password Incorrect!":
                         reply.append(dbus.Byte(i.encode('utf-8')))
 
 
