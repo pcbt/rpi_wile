@@ -42,12 +42,22 @@ def restart_dhcdcp():
 def restart_bluetooth():
     cmd = 'service bluetooth restart'
     cmd_result = os.system(cmd)
+<<<<<<< HEAD
     print(cmd_result)
     
 def reboot():
     cmd = 'reboot'
     cmd_result = os.system(cmd)
     print(cmd_result)
+=======
+    f = open('log.txt','a')
+    f.write('time:'+ datetime.date+' log:'+ cmd_result)
+    f.flush
+    f.close
+def reboot():
+    cmd = 'reboot'
+    cmd_result = os.system(cmd)
+>>>>>>> bc4a7973e547a5068f7b100fe8cd03b2e0037901
 
 def ssid_scan():
     try:
@@ -323,6 +333,7 @@ def main():
     #
 
     try:
+        restart_bluetooth()
         mainloop.run()
     except KeyboardInterrupt:
         display.clear()
