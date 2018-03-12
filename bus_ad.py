@@ -129,10 +129,10 @@ class SSIDScanner(Characteristic):
                             reply.append(dbus.Byte(i.encode('utf-8')))
 
                         self.list_index = self.list_index +1
-                else:
-                    reply = dbus.Array(signature='y')
-                    for i in "Password Incorrect!":
-                        reply.append(dbus.Byte(i.encode('utf-8')))
+            else:
+                reply = dbus.Array(signature='y')
+                for i in "Password Incorrect!":
+                    reply.append(dbus.Byte(i.encode('utf-8')))
 
 
 
