@@ -15,9 +15,12 @@ except ImportError:
 
 
 
-from bluez import *
+from bluez_lib import *
+from mqtt_lib import *
 
 mainloop = None
+
+ble_password = '5860'
 
 auth = {
   'username':"airchip1",
@@ -97,28 +100,36 @@ class SSIDScanner(Characteristic):
 
     def WriteValue(self, value, options):
         if value is not None:
-            if str(value[0]) is 'S':
-                print('wifi search started')
-                self.ssid_list = ssid_scan()
-                self.list_index = 0
-                reply = dbus.Array(signature='y')
-                for i in "SSID scanning is completed!":
-                    reply.append(dbus.Byte(i.encode('utf-8')))
+            device_password=str(value[0])+str(value[1])+str(value[2])+str(value[3])
 
-
-            elif str(value[0]) is 'N':
-
-                if self.ssid_list is None:
+            if device_password is ble_password:
+                if str(value[0]) is 'S':
+                    print('wifi search started')
+                    self.ssid_list = ssid_scan()
+                    self.list_index = 0
                     reply = dbus.Array(signature='y')
-                    for i in "No SSID list!!":
+                    for i in "SSID scanning is completed!":
                         reply.append(dbus.Byte(i.encode('utf-8')))
 
+
+                elif str(value[0]) is 'N':
+
+                    if self.ssid_list is None:
+                        reply = dbus.Array(signature='y')
+                        for i in "No SSID list!!":
+                            reply.append(dbus.Byte(i.encode('utf-8')))
+
+                    else:
+                        reply = dbus.Array(signature='y')
+                        for i in self.ssid_list[self.list_index]:
+                            reply.append(dbus.Byte(i.encode('utf-8')))
+
+                        self.list_index = self.list_index +1
                 else:
                     reply = dbus.Array(signature='y')
-                    for i in self.ssid_list[self.list_index]:
+                    for i in "Password Incorrect":
                         reply.append(dbus.Byte(i.encode('utf-8')))
 
-                    self.list_index = self.list_index +1
 
 
         self.value = reply
@@ -243,6 +254,19 @@ def main():
     ad_manager.RegisterAdvertisement(test_advertisement.get_path(), {},
                                      reply_handler=register_ad_cb,
                                      error_handler=register_ad_error_cb)
+
+    # mqttc = mqtt.Client()
+    # mqttc.on_message = on_message
+    # mqttc.on_connect = on_connect
+    # mqttc.on_publish = on_publish
+    # mqttc.on_subscribe = on_subscribe
+    # # Uncomment to enable debug messages
+    # # mqttc.on_log = on_log
+    # mqttc.connect("mqtt.airchip.com.tr", 8883, 60)
+    # mqttc.subscribe("bus/ble/password", 2)
+    #
+    # mqttc.loop_forever()
+    #
 
     try:
         mainloop.run()
