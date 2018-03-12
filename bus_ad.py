@@ -49,13 +49,29 @@ def ssid_scan():
 
     except:
         print ("Error > ",sys.exc_info()[0])
+    ssid_list=[]
+    out=out.decode("UTF-8").split("ESSID:")
+    for i in out:
+        ssid_list.append(i.split("\n")[0].replace('"',''))
 
-    out2=out.decode("UTF-8").split("ESSID:")
-    out3=out2[1].split("\n")[0].encode("UTF-8")
-    print(out3)
-    return out3
+    ssid_list.reverse()
+    ssid_list.pop()
+    ssid_list.reverse()
+    print(ssid_list)
+    return ssid_list
 
+def WifiScanner():
+    wifilist = []
+    print("scanning")
 
+    cells = wifi.Cell.all('wlan0')
+
+    print("scanning 1")
+
+    for cell in cells:
+        wifilist.append(cell.ssid)
+    print("scanning 2")
+    return wifilist
 
 class SSIDScanner(Characteristic):
     """
@@ -72,29 +88,40 @@ class SSIDScanner(Characteristic):
                 ['read', 'write'],
                 service)
         self.value = []
-
-    def WifiScanner(self):
-        ssid_list=[]
-        values = wl.Search()
-        if values is not None:
-            print("Wifi SSIDs are scanned")
-            for i in values:
-                print("SSID: " + i.ssid)
-                ssid_list.append(i.ssid.encode('UTF-8'))
-                # value.append(dbus.Byte(0x06))
-                # value.append(dbus.Byte(i.ssid.encode('utf-8')))
-        return ssid_list
+        self.ssid_list = []
+        self.list_index = 0
 
     def ReadValue(self, options):
-        self.value = 3
-        # self.value = WifiScanner()
-        print("Data reading from Center BLE Device" + repr(self.value))
+        print("Data reading from Center BLE Device " + repr(self.value))
         return self.value
 
     def WriteValue(self, value, options):
-        print("Sending data from Center BLE Device to Server" + repr(value))
-        publish.single("test",payload=str(value),hostname="mqtt.airchip.com.tr",client_id="bus1",auth=auth,tls=tls,port=8883,protocol=mqtt.MQTTv311)
-        self.value = value
+        if value is not None:
+            if str(value[0]) is 'S':
+                print('wifi search started')
+                self.ssid_list = ssid_scan()
+                self.list_index = 0
+                reply = dbus.Array(signature='y')
+                for i in "SSID scanning is completed!":
+                    reply.append(dbus.Byte(i.encode('utf-8')))
+
+
+            elif str(value[0]) is 'N':
+
+                if self.ssid_list is None:
+                    reply = dbus.Array(signature='y')
+                    for i in "No SSID list!!":
+                        reply.append(dbus.Byte(i.encode('utf-8')))
+
+                else:
+                    reply = dbus.Array(signature='y')
+                    for i in self.ssid_list[self.list_index]:
+                        reply.append(dbus.Byte(i.encode('utf-8')))
+
+                    self.list_index = self.list_index +1
+
+
+        self.value = reply
 
 
 class MqttMessage(Characteristic):
