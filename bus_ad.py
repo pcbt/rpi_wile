@@ -1,13 +1,11 @@
+#!/usr/bin/env python3
 import dbus
 import dbus.mainloop.glib
-import paho.mqtt.publish as publish
-import paho.mqtt.client as mqtt
 import ssl
 import subprocess
 import sys
 import os
 import datetime
-from wifi_lib import *
 
 try:
     from gi.repository import GObject
@@ -42,22 +40,39 @@ def restart_dhcdcp():
 def restart_bluetooth():
     cmd = 'service bluetooth restart'
     cmd_result = os.system(cmd)
-<<<<<<< HEAD
+
     print(cmd_result)
-    
+
+
 def reboot():
-    cmd = 'reboot'
+    cmd = 'sudo reboot'
     cmd_result = os.system(cmd)
     print(cmd_result)
-=======
-    f = open('log.txt','a')
-    f.write('time:'+ datetime.date+' log:'+ cmd_result)
-    f.flush
-    f.close
-def reboot():
-    cmd = 'reboot'
-    cmd_result = os.system(cmd)
->>>>>>> bc4a7973e547a5068f7b100fe8cd03b2e0037901
+
+
+def wpa_file_copy():
+    try:
+
+        res = subprocess.Popen(["sudo cp wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf"], stdout=subprocess.PIPE, shell=True)
+
+        (out, err) = res.communicate()
+
+
+        if out:
+            print("OK> wpa_supplicant file copied; return code> " + str(res.returncode))
+        if err:
+            print ("ret> "+str(res.returncode))
+            print ("Error> error while wpa_supplicant file copying!! "+err.strip())
+
+    except OSError as e:
+        print ("OSError > ",e.errno)
+        print ("OSError > ",e.strerror)
+        print ("OSError > ",e.filename)
+
+    except:
+        print ("Error > ",sys.exc_info()[0])
+
+
 
 def ssid_scan():
     try:
@@ -91,13 +106,6 @@ def ssid_scan():
     print(ssid_list)
     return ssid_list
 
-def WifiScanner():
-    wifilist = []
-    cells = wifi.Cell.all('wlan0')
-    for cell in cells:
-        wifilist.append(cell.ssid)
-    return wifilist
-
 class SSIDScanner(Characteristic):
     """
     SSID scanner characteristic. Scans the available SSIDs and return back to user. Get SSID password
@@ -126,16 +134,17 @@ class SSIDScanner(Characteristic):
         if value is not None:
             if str(value[0]) is 'B':
                 self.service_password=str(value[1])+str(value[2])+str(value[3])+str(value[4])
-                print(self.service_password)
+                print('B Pressed:BLE device password enterred! :'+self.service_password)
                 reply = dbus.Array(signature='y')
                 for i in "Password Enterred!":
                     reply.append(dbus.Byte(i.encode('utf-8')))
             elif self.service_password == ble_password:
                 if str(value[0]) is 'S':
-                    print('wifi search started')
-                    self.ssid_list = WifiScanner()
+                    print('S Pressed:SSID scanning started! Function = ssid_scan()')
+                    self.ssid_list = ssid_scan()
                     self.list_index = 0
                     reply = dbus.Array(signature='y')
+                    print('SSID scan completed!')
                     for i in "SSID scanning is completed!":
                         reply.append(dbus.Byte(i.encode('utf-8')))
 
@@ -143,45 +152,60 @@ class SSIDScanner(Characteristic):
                 elif str(value[0]) is 'N':
 
                     if self.ssid_list is None:
+                        print('N Pressed:SSID list is empty!')
                         reply = dbus.Array(signature='y')
                         for i in "No SSID list!!":
                             reply.append(dbus.Byte(i.encode('utf-8')))
 
                     else:
+                        print('N Pressed:SSID sent!')
                         reply = dbus.Array(signature='y')
                         for i in self.ssid_list[self.list_index]:
                             reply.append(dbus.Byte(i.encode('utf-8')))
-
+                        print('Sent SSID:'+self.ssid_list[self.list_index])
                         self.list_index = self.list_index +1
                 elif str(value[0]) is 'P':
+                    print('P Pressed:SSID password entered!')
                     ssid_key=''
                     for i in range(1,len(value)):
                         ssid_key+=str(value[i])
                     self.ssid_password=ssid_key
+                    print('SSID key: '+ssid_key)
                     self.value=value
 
                 elif str(value[0]) is 'C':
                     if self.ssid_list is None:
+                        print('C Pressed:SSID list is empty!')
                         reply = dbus.Array(signature='y')
                         for i in "No SSID list!!":
                             reply.append(dbus.Byte(i.encode('utf-8')))
                     else:
-                        print(self.ssid_list[int(str(value[1]))]+' '+self.ssid_password)
-                        f = open('/etc/wpa_supplicant/wpa_supplicant.conf','a')
+                        print('C Pressed:SSID and Password: '+self.ssid_list[int(str(value[1]))]+' '+self.ssid_password)
+                        f = open('wpa_supplicant.conf','w')
 
-                        new_ssid="""network={
-                        ssid='"""+self.ssid_list[int(str(value[1]))]+"""'
-                        psk='"""+self.ssid_password+"""'
-                        key_mgmt=WPA-PSK
-                        }"""
+                        new_ssid='''country=GB
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+
+'''
+
+                        new_ssid=new_ssid+"""network={
+    ssid='"""+self.ssid_list[int(str(value[1]))]+"""'
+    psk='"""+self.ssid_password+"""'
+    key_mgmt=WPA-PSK
+}
+"""
 
                         f.write(new_ssid)
                         f.flush()
-                        print('writing done')
+                        print('Wpa_supplicant file is written on local folder. Calling wpa_file_copy() function to copy /etc/wpa_supplicant folder.')
+                        wpa_file_copy()
+                        print('Copying done!!')
                         reply = dbus.Array(signature='y')
                         for i in "SSID added to wpa_supplicant file!!":
                             reply.append(dbus.Byte(i.encode('utf-8')))
                 elif str(value[0]) is 'R':
+                    print('R Pressed:Rebooting!!')
                     reply = dbus.Array(signature='y')
                     for i in "Rebooting!":
                         reply.append(dbus.Byte(i.encode('utf-8')))
@@ -198,31 +222,6 @@ class SSIDScanner(Characteristic):
 
         self.value = reply
 
-
-class MqttMessage(Characteristic):
-    """
-    Dummy test characteristic. Allows writing arbitrary bytes to its value, and
-    contains "extended properties", as well as a test descriptor.
-
-    """
-    TEST_CHRC_UUID = '12345678-1234-5678-1234-56789abcdef1'
-
-    def __init__(self, bus, index, service):
-        Characteristic.__init__(
-                self, bus, index,
-                self.TEST_CHRC_UUID,
-                ['read', 'write'],
-                service)
-        self.value = []
-
-    def ReadValue(self, options):
-        print("Data reading from Center BLE Device" + repr(self.value))
-        return self.value
-
-    def WriteValue(self, value, options):
-        print("Sending data from Center BLE Device to Server" + repr(value))
-        publish.single("test",payload=str(value),hostname="mqtt.airchip.com.tr",client_id="bus1",auth=auth,tls=tls,port=8883,protocol=mqtt.MQTTv311)
-        self.value = value
 
 class SSIDService(Service):
     SSID_SRV_UUID = '12345678-1234-5678-1234-56789abc0020'
@@ -333,7 +332,7 @@ def main():
     #
 
     try:
-        restart_bluetooth()
+
         mainloop.run()
     except KeyboardInterrupt:
         display.clear()
