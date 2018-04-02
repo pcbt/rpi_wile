@@ -81,16 +81,14 @@ def local_ip_adress():
     ip_address = "<Not Set>"
 
     try:
-        p = subprocess.Popen(['ifconfig', 'wlan0'], stdout=subprocess.PIPE,
+        res = subprocess.Popen(['ifconfig', 'wlan0'], stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE)
 
-        out, err = p.communicate()
+        out, err = res.communicate()
 
         if out:
             print("OK> Local IP address fetched; return code> " + str(res.returncode))
-            for l in out.split('\n'):
-                if l.strip().startswith("inet addr:"):
-                    ip_address = l.strip().split(' ')[1].split(':')[1]
+            ip_address = out.decode('UTF-8').split('inet')[1][1:-10]
 
             return ip_address
         if err:
@@ -107,7 +105,9 @@ def local_ip_adress():
         print ("Error > ",sys.exc_info()[0])
 
 
+
 def ssid_scan():
+    ssid_list=[]
     try:
 
         res = subprocess.Popen(["sudo iwlist wlan0 scan | grep ESSID"], stdout=subprocess.PIPE, shell=True)
@@ -117,6 +117,15 @@ def ssid_scan():
 
         if out:
             print("OK> SSID scan is complete; return code> " + str(res.returncode))
+            for i in out.decode("UTF-8").split("ESSID:"):
+                ssid_list.append(i.split("\n")[0].replace('"',''))
+
+            ssid_list.reverse()
+            ssid_list.pop()
+            ssid_list.reverse()
+            print(ssid_list)
+            return ssid_list
+
         if err:
             print ("ret> "+str(res.returncode))
             print ("Error> error while scanning SSIDs!! "+err.strip())
@@ -128,16 +137,7 @@ def ssid_scan():
 
     except:
         print ("Error > ",sys.exc_info()[0])
-    ssid_list=[]
-    out=out.decode("UTF-8").split("ESSID:")
-    for i in out:
-        ssid_list.append(i.split("\n")[0].replace('"',''))
 
-    ssid_list.reverse()
-    ssid_list.pop()
-    ssid_list.reverse()
-    print(ssid_list)
-    return ssid_list
 
 class SSIDScanner(Characteristic):
     """
