@@ -52,50 +52,11 @@ def wpa_file(ssid,psk):
     wpa_supplicant_conf = "/etc/wpa_supplicant/wpa_supplicant.conf"
     sudo_mode = 'sudo '
 
-    cmd = 'sudo mv wifi.conf ' + wpa_supplicant_conf
-    cmd_result = ""
-    cmd_result = os.system(cmd)
-    print(cmd + " - " + str(cmd_result))
 
 
-    # restart wifi adapter
-    cmd = sudo_mode + 'ifdown wlan0'
-    cmd_result = os.system(cmd)
-    print(cmd + " - " + str(cmd_result))
-
-    time.sleep(2)
-
-    cmd = sudo_mode + 'ifup wlan0'
-    cmd_result = os.system(cmd)
-    print(cmd + " - " + str(cmd_result))
-
-    time.sleep(10)
-
-    cmd = 'iwconfig wlan0'
-    cmd_result = os.system(cmd)
-    print(cmd + " - " + str(cmd_result))
-
-    cmd = 'ifconfig wlan0'
-    cmd_result = os.system(cmd)
-    print(cmd + " - " + str(cmd_result))
-
-    p = subprocess.Popen(['ifconfig', 'wlan0'], stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-
-    out, err = p.communicate()
-
-    ip_address = "<Not Set>"
-
-    for l in out.split('\n'):
-        if l.strip().startswith("inet addr:"):
-            ip_address = l.strip().split(' ')[1].split(':')[1]
-
-    return ip_address
-
-def wpa_file_copy():
     try:
 
-        res = subprocess.Popen(["sudo cp wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf"], stdout=subprocess.PIPE, shell=True)
+        res = subprocess.Popen(['sudo mv wifi.conf ' + wpa_supplicant_conf], stdout=subprocess.PIPE, shell=True)
 
         (out, err) = res.communicate()
 
@@ -116,6 +77,34 @@ def wpa_file_copy():
 
 
 
+def local_ip_adress():
+    ip_address = "<Not Set>"
+
+    try:
+        p = subprocess.Popen(['ifconfig', 'wlan0'], stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+
+        out, err = p.communicate()
+
+        if out:
+            print("OK> Local IP address fetched; return code> " + str(res.returncode))
+            for l in out.split('\n'):
+                if l.strip().startswith("inet addr:"):
+                    ip_address = l.strip().split(' ')[1].split(':')[1]
+
+            return ip_address
+        if err:
+            print ("ret> "+str(res.returncode))
+            print ("Error> error while fetching local IP address!! "+err.strip())
+
+
+        except OSError as e:
+            print ("OSError > ",e.errno)
+            print ("OSError > ",e.strerror)
+            print ("OSError > ",e.filename)
+
+        except:
+            print ("Error > ",sys.exc_info()[0])
 
 
 def ssid_scan():
@@ -169,6 +158,7 @@ class SSIDScanner(Characteristic):
         self.list_index = 0
         self.service_password =''
         self.ssid_password=''
+        self.local_ip_address='<Not Set>'
 
     def ReadValue(self, options):
         #print("Data reading from Center BLE Device " + repr(self.value))
@@ -237,6 +227,12 @@ class SSIDScanner(Characteristic):
                     for i in "Rebooting!":
                         reply.append(dbus.Byte(i.encode('utf-8')))
                     reboot()
+                elif str(value[0]) is 'L':
+                    print('L Pressed:Getting device local IP address!!')
+                    reply = dbus.Array(signature='y')
+                    self.local_ip_address=local_ip_adress()
+                    for i in self.local_ip_address:
+                        reply.append(dbus.Byte(i.encode('utf-8')))
 
 
 
