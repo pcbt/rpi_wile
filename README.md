@@ -22,7 +22,7 @@ sudo make install
 ```
 ### systemd for running as a service
 
-move busad.service file to /etc/systemd/system append
+move airchip.service file to /etc/systemd/system
 
 ```
 sudo chmod a+x busad.service
