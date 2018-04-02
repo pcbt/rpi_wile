@@ -50,7 +50,9 @@ def wpa_file(ssid,psk):
     f.close()
 
     wpa_supplicant_conf = "/etc/wpa_supplicant/wpa_supplicant.conf"
-    cmd = 'mv wifi.conf ' + wpa_supplicant_conf
+    sudo_mode = 'sudo'
+    
+    cmd = 'sudo mv wifi.conf ' + wpa_supplicant_conf
     cmd_result = ""
     cmd_result = os.system(cmd)
     print(cmd + " - " + str(cmd_result))
