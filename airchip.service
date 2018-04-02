@@ -1,5 +1,5 @@
 [Unit]
-Description=Bus Ad
+Description=Airchip Bus Advertiser Service
 After=network.target dbus.service
 
 [Service]
