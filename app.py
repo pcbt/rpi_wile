@@ -271,19 +271,24 @@ class SSIDScanner(Characteristic):
                         for i in "No SSID list!!":
                             reply.append(dbus.Byte(i.encode('utf-8')))
                     else:
-                        print('C Pressed:SSID and Password: '+self.ssid_list[int(str(value[1]))]+' '+self.ssid_password)
+                        print('C Pressed:SSID and Password: '+self.ssid_list[int(str(value[1]))]+' '+self.ssid_password +'Function: wpa_file()')
 
-                        logging.info('C Pressed:SSID and Password: '+self.ssid_list[int(str(value[1]))]+' '+self.ssid_password)
+                        logging.info('C Pressed:SSID and Password: '+self.ssid_list[int(str(value[1]))]+' '+self.ssid_password +'Function: wpa_file()')
 
-                        ip_address=wpa_file(self.ssid_list[int(str(value[1]))],self.ssid_password)
-                        print('IP Adress :'+ip_address)
+                        wpa_file(self.ssid_list[int(str(value[1]))],self.ssid_password)
 
-                        logging.info('IP Adress :'+ip_address)
+
+
 
                         reply = dbus.Array(signature='y')
-                        return_txt="SSID added to wpa_supplicant file!! IP: "+str(ip_address)
-                        for i in return_txt:
+
+                        for i in "SSID added to wpa_supplicant file!!":
                             reply.append(dbus.Byte(i.encode('utf-8')))
+
+                        print('Wpa file copied succesfully')
+
+                        logging.info('Wpa file copied succesfully')
+
                 elif str(value[0]) is 'R':
                     print('R Pressed:Rebooting!!')
 
