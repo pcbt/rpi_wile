@@ -6,6 +6,8 @@ import subprocess
 import sys
 import os
 import datetime
+import time
+import logging
 
 try:
     from gi.repository import GObject
@@ -15,18 +17,13 @@ except ImportError:
 from bluez_lib import *
 from mqtt_lib import *
 
+logging.basicConfig(filename='bus_ad.log',level=logging.DEBUG,format='%(asctime)s %(message)s')
+
 mainloop = None
 
 ble_password = '5860'
 
-auth = {
-  'username':"airchip1",
-  'password':"yildiz2013"
-}
 
-tls = {
-  'ca_certs':"/etc/ssl/certs/ca-certificates.crt",
-}
 
 def reboot():
     cmd = 'sudo reboot'
@@ -48,73 +45,88 @@ def wpa_file(ssid,psk):
     f.write('}\n')
     f.close()
 
-    cmd = 'mv wifi.conf ' + wpa_supplicant_conf
-    cmd_result = ""
-    cmd_result = os.system(cmd)
-    print cmd + " - " + str(cmd_result)
+    wpa_supplicant_conf = "/etc/wpa_supplicant/wpa_supplicant.conf"
+    sudo_mode = 'sudo '
 
 
-    # restart wifi adapter
-    cmd = sudo_mode + 'ifdown wlan0'
-    cmd_result = os.system(cmd)
-    print cmd + " - " + str(cmd_result)
 
-    time.sleep(2)
-
-    cmd = sudo_mode + 'ifup wlan0'
-    cmd_result = os.system(cmd)
-    print cmd + " - " + str(cmd_result)
-
-    time.sleep(10)
-
-    cmd = 'iwconfig wlan0'
-    cmd_result = os.system(cmd)
-    print cmd + " - " + str(cmd_result)
-
-    cmd = 'ifconfig wlan0'
-    cmd_result = os.system(cmd)
-    print cmd + " - " + str(cmd_result)
-
-    p = subprocess.Popen(['ifconfig', 'wlan0'], stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
-
-    out, err = p.communicate()
-
-    ip_address = "<Not Set>"
-
-    for l in out.split('\n'):
-        if l.strip().startswith("inet addr:"):
-            ip_address = l.strip().split(' ')[1].split(':')[1]
-
-    return ip_address
-
-def wpa_file_copy():
     try:
-
-        res = subprocess.Popen(["sudo cp wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf"], stdout=subprocess.PIPE, shell=True)
+        res = subprocess.Popen(['sudo mv wifi.conf ' + wpa_supplicant_conf], stdout=subprocess.PIPE, shell=True)
 
         (out, err) = res.communicate()
 
-
         if out:
             print("OK> wpa_supplicant file copied; return code> " + str(res.returncode))
+
+            logging.info("OK> wpa_supplicant file copied; return code> " + str(res.returncode))
+
         if err:
             print ("ret> "+str(res.returncode))
             print ("Error> error while wpa_supplicant file copying!! "+err.strip())
+
+            logging.error ("ret> "+str(res.returncode))
+            logging.error ("Error> error while wpa_supplicant file copying!! "+err.strip())
 
     except OSError as e:
         print ("OSError > ",e.errno)
         print ("OSError > ",e.strerror)
         print ("OSError > ",e.filename)
 
+        logging.error ("OSError > ",e.errno)
+        logging.error ("OSError > ",e.strerror)
+        logging.error ("OSError > ",e.filename)
+
     except:
         print ("Error > ",sys.exc_info()[0])
 
+        logging.error ("Error > ",sys.exc_info()[0])
 
+
+
+def local_ip_adress():
+    ip_address = "<Not Set>"
+
+    try:
+        res = subprocess.Popen(['ifconfig', 'wlan0'], stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+
+        out, err = res.communicate()
+
+        if out:
+            print("OK> Local IP address fetched; return code> " + str(res.returncode))
+
+            logging.info("OK> Local IP address fetched; return code> " + str(res.returncode))
+
+            ip_address = out.decode('UTF-8').split('inet')[1][1:-10]
+            return ip_address
+        if err:
+            print ("ret> "+str(res.returncode))
+            print ("Error> error while fetching local IP address!! "+err.strip())
+
+            ip_address = "Error> error while fetching local IP address!! "
+
+            logging.error ("ret> "+str(res.returncode))
+            logging.error ("Error> error while fetching local IP address!! "+err.strip())
+
+
+    except OSError as e:
+        print ("OSError > ",e.errno)
+        print ("OSError > ",e.strerror)
+        print ("OSError > ",e.filename)
+
+        logging.error ("OSError > ",e.errno)
+        logging.error ("OSError > ",e.strerror)
+        logging.error ("OSError > ",e.filename)
+
+    except:
+        print ("Error > ",sys.exc_info()[0])
+
+        logging.error ("Error > ",sys.exc_info()[0])
 
 
 
 def ssid_scan():
+    ssid_list=[]
     try:
 
         res = subprocess.Popen(["sudo iwlist wlan0 scan | grep ESSID"], stdout=subprocess.PIPE, shell=True)
@@ -124,27 +136,39 @@ def ssid_scan():
 
         if out:
             print("OK> SSID scan is complete; return code> " + str(res.returncode))
+
+            logging.info("OK> SSID scan is complete; return code> " + str(res.returncode))
+
+            for i in out.decode("UTF-8").split("ESSID:"):
+                ssid_list.append(i.split("\n")[0].replace('"',''))
+
+            ssid_list.reverse()
+            ssid_list.pop()
+            ssid_list.reverse()
+            print(ssid_list)
+            return ssid_list
+
         if err:
             print ("ret> "+str(res.returncode))
             print ("Error> error while scanning SSIDs!! "+err.strip())
+
+            logging.error ("ret> "+str(res.returncode))
+            logging.error ("Error> error while scanning SSIDs!! "+err.strip())
 
     except OSError as e:
         print ("OSError > ",e.errno)
         print ("OSError > ",e.strerror)
         print ("OSError > ",e.filename)
 
+        logging.error ("OSError > ",e.errno)
+        logging.error ("OSError > ",e.strerror)
+        logging.error ("OSError > ",e.filename)
+
     except:
         print ("Error > ",sys.exc_info()[0])
-    ssid_list=[]
-    out=out.decode("UTF-8").split("ESSID:")
-    for i in out:
-        ssid_list.append(i.split("\n")[0].replace('"',''))
 
-    ssid_list.reverse()
-    ssid_list.pop()
-    ssid_list.reverse()
-    print(ssid_list)
-    return ssid_list
+        logging.error ("Error > ",sys.exc_info()[0])
+
 
 class SSIDScanner(Characteristic):
     """
@@ -165,6 +189,7 @@ class SSIDScanner(Characteristic):
         self.list_index = 0
         self.service_password =''
         self.ssid_password=''
+        self.local_ip_address='<Not Set>'
 
     def ReadValue(self, options):
         #print("Data reading from Center BLE Device " + repr(self.value))
@@ -175,16 +200,25 @@ class SSIDScanner(Characteristic):
             if str(value[0]) is 'B':
                 self.service_password=str(value[1])+str(value[2])+str(value[3])+str(value[4])
                 print('B Pressed:BLE device password enterred! :'+self.service_password)
+
+                logging.info('B Pressed:BLE device password enterred! :'+self.service_password)
+
                 reply = dbus.Array(signature='y')
                 for i in "Password Enterred!":
                     reply.append(dbus.Byte(i.encode('utf-8')))
             elif self.service_password == ble_password:
                 if str(value[0]) is 'S':
                     print('S Pressed:SSID scanning started! Function = ssid_scan()')
+
+                    logging.info('S Pressed:SSID scanning started! Function = ssid_scan()')
+
                     self.ssid_list = ssid_scan()
                     self.list_index = 0
                     reply = dbus.Array(signature='y')
                     print('SSID scan completed!')
+
+                    logging.info('SSID scan completed!')
+
                     for i in "SSID scanning is completed!":
                         reply.append(dbus.Byte(i.encode('utf-8')))
 
@@ -193,46 +227,82 @@ class SSIDScanner(Characteristic):
 
                     if self.ssid_list is None:
                         print('N Pressed:SSID list is empty!')
+
+                        logging.warning('N Pressed:SSID list is empty!')
+
                         reply = dbus.Array(signature='y')
                         for i in "No SSID list!!":
                             reply.append(dbus.Byte(i.encode('utf-8')))
 
                     else:
                         print('N Pressed:SSID sent!')
+
+                        logging.info('N Pressed:SSID sent!')
+
                         reply = dbus.Array(signature='y')
                         for i in self.ssid_list[self.list_index]:
                             reply.append(dbus.Byte(i.encode('utf-8')))
                         print('Sent SSID:'+self.ssid_list[self.list_index])
+
+                        logging.info('Sent SSID:'+self.ssid_list[self.list_index])
+
                         self.list_index = self.list_index +1
                 elif str(value[0]) is 'P':
                     print('P Pressed:SSID password entered!')
+
+                    logging.info('P Pressed:SSID password entered!')
+
                     ssid_key=''
                     for i in range(1,len(value)):
                         ssid_key+=str(value[i])
                     self.ssid_password=ssid_key
                     print('SSID key: '+ssid_key)
+
+                    logging.info('SSID key: '+ssid_key)
+
                     self.value=value
 
                 elif str(value[0]) is 'C':
                     if self.ssid_list is None:
                         print('C Pressed:SSID list is empty!')
+
+                        logging.warning('C Pressed:SSID list is empty!')
+
                         reply = dbus.Array(signature='y')
                         for i in "No SSID list!!":
                             reply.append(dbus.Byte(i.encode('utf-8')))
                     else:
                         print('C Pressed:SSID and Password: '+self.ssid_list[int(str(value[1]))]+' '+self.ssid_password)
+
+                        logging.info('C Pressed:SSID and Password: '+self.ssid_list[int(str(value[1]))]+' '+self.ssid_password)
+
                         ip_address=wpa_file(self.ssid_list[int(str(value[1]))],self.ssid_password)
                         print('IP Adress :'+ip_address)
+
+                        logging.info('IP Adress :'+ip_address)
+
                         reply = dbus.Array(signature='y')
                         return_txt="SSID added to wpa_supplicant file!! IP: "+str(ip_address)
                         for i in return_txt:
                             reply.append(dbus.Byte(i.encode('utf-8')))
                 elif str(value[0]) is 'R':
                     print('R Pressed:Rebooting!!')
+
+                    logging.info('R Pressed:Rebooting!!')
+
                     reply = dbus.Array(signature='y')
                     for i in "Rebooting!":
                         reply.append(dbus.Byte(i.encode('utf-8')))
                     reboot()
+                elif str(value[0]) is 'L':
+                    print('L Pressed:Getting device local IP address!!')
+
+                    logging.info('L Pressed:Getting device local IP address!!')
+
+                    reply = dbus.Array(signature='y')
+                    self.local_ip_address=local_ip_adress()
+                    for i in self.local_ip_address:
+                        reply.append(dbus.Byte(i.encode('utf-8')))
 
 
 
@@ -278,6 +348,7 @@ def register_ad_cb():
     Callback if registering advertisement was successful
     """
     print('Advertisement registered')
+    logging.info('Advertisement registered')
 
 
 def register_ad_error_cb(error):
@@ -285,6 +356,7 @@ def register_ad_error_cb(error):
     Callback if registering advertisement failed
     """
     print('Failed to register advertisement: ' + str(error))
+    logging.error('Failed to register advertisement: ' + str(error))
     mainloop.quit()
 
 
@@ -293,6 +365,7 @@ def register_app_cb():
     Callback if registering GATT application was successful
     """
     print('GATT application registered')
+    logging.info('GATT application registered')
 
 
 def register_app_error_cb(error):
@@ -300,12 +373,15 @@ def register_app_error_cb(error):
     Callback if registering GATT application failed.
     """
     print('Failed to register application: ' + str(error))
+    logging.error('Failed to register application: ' + str(error))
     mainloop.quit()
 
 
 def main():
     global mainloop
     global display
+
+    logging.info('Service started!')
 
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 

@@ -4,11 +4,10 @@ After=network.target dbus.service
 
 [Service]
 Type=simple
-ExecStart=/home/pi/rpi_wile/bus_ad.py
+ExecStart=/home/pi/rpi_wile/app.py
 WorkingDirectory=/home/pi/rpi_wile/
 Restart=always
 User=pi
 
 [Install]
 WantedBy=multi-user.target
-
