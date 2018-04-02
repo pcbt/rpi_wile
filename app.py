@@ -15,7 +15,6 @@ except ImportError:
     import gobject as GObject
 
 from bluez_lib import *
-from mqtt_lib import *
 
 logging.basicConfig(filename='bus_ad.log',level=logging.DEBUG,format='%(asctime)s %(message)s')
 
