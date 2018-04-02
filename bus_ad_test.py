@@ -7,6 +7,7 @@ import sys
 import os
 import datetime
 import time
+import logging
 
 try:
     from gi.repository import GObject
@@ -16,18 +17,13 @@ except ImportError:
 from bluez_lib import *
 from mqtt_lib import *
 
+logging.basicConfig(filename='airrouter.log',level=logging.DEBUG,format='%(asctime)s %(message)s')
+
 mainloop = None
 
 ble_password = '5860'
 
-auth = {
-  'username':"airchip1",
-  'password':"yildiz2013"
-}
 
-tls = {
-  'ca_certs':"/etc/ssl/certs/ca-certificates.crt",
-}
 
 def reboot():
     cmd = 'sudo reboot'
@@ -63,17 +59,24 @@ def wpa_file(ssid,psk):
 
         if out:
             print("OK> wpa_supplicant file copied; return code> " + str(res.returncode))
+            logging.info("OK> wpa_supplicant file copied; return code> " + str(res.returncode))
         if err:
             print ("ret> "+str(res.returncode))
+            logging.error ("ret> "+str(res.returncode))
             print ("Error> error while wpa_supplicant file copying!! "+err.strip())
+            logging.error ("Error> error while wpa_supplicant file copying!! "+err.strip())
 
     except OSError as e:
         print ("OSError > ",e.errno)
         print ("OSError > ",e.strerror)
         print ("OSError > ",e.filename)
 
+        logging.error ("OSError > ",e.errno)
+        logging.error ("OSError > ",e.strerror)
+        logging.error ("OSError > ",e.filename)
+
     except:
-        print ("Error > ",sys.exc_info()[0])
+        logging.error ("Error > ",sys.exc_info()[0])
 
 
 
@@ -88,6 +91,7 @@ def local_ip_adress():
 
         if out:
             print("OK> Local IP address fetched; return code> " + str(res.returncode))
+            logging.info("OK> Local IP address fetched; return code> " + str(res.returncode))
             ip_address = out.decode('UTF-8').split('inet')[1][1:-10]
 
             return ip_address
@@ -306,6 +310,8 @@ def register_app_error_cb(error):
 def main():
     global mainloop
     global display
+
+    logging.info('Service started!')
 
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
 
