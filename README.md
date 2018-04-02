@@ -2,9 +2,9 @@
 Raspberry Pi WiFi configuration app via BLE
 
 
-##Required Libraries
+## Required Libraries
 
-###bluez 5.49 or above (tested on 5.49, higher versions will probably work)
+### bluez 5.49 or above (tested on 5.49, higher versions will probably work)
 
 ```
 wget http://www.kernel.org/pub/linux/bluetooth/bluez-5.49.tar.xz
@@ -20,7 +20,7 @@ cd bluez-5.49
 make
 sudo make install
 ```
-###systemd for running as a service
+### systemd for running as a service
 
 move busad.service file to /etc/systemd/system append
 
