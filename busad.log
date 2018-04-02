@@ -1,0 +1,6 @@
+2018-04-02 21:12:08,165 -- INFO: Service started!
+2018-04-02 21:12:08,211 -- INFO: Bluez_lib: GetManagedObjects
+2018-04-02 21:12:08,216 -- INFO: GATT application registered
+2018-04-02 21:12:08,219 -- INFO: GetAll
+2018-04-02 21:12:08,220 -- INFO: Bluez_lib: returning props
+2018-04-02 21:12:08,224 -- ERROR: Failed to register advertisement: org.bluez.Error.Failed: Failed to register advertisement

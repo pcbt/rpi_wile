@@ -16,7 +16,6 @@ except ImportError:
 
 from bluez_lib import *
 
-logging.basicConfig(filename='bus_ad.log',level=logging.DEBUG,format='%(asctime)s %(message)s')
 
 mainloop = None
 
