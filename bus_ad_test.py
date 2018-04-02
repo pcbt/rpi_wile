@@ -98,13 +98,13 @@ def local_ip_adress():
             print ("Error> error while fetching local IP address!! "+err.strip())
 
 
-        except OSError as e:
-            print ("OSError > ",e.errno)
-            print ("OSError > ",e.strerror)
-            print ("OSError > ",e.filename)
+    except OSError as e:
+        print ("OSError > ",e.errno)
+        print ("OSError > ",e.strerror)
+        print ("OSError > ",e.filename)
 
-        except:
-            print ("Error > ",sys.exc_info()[0])
+    except:
+        print ("Error > ",sys.exc_info()[0])
 
 
 def ssid_scan():
