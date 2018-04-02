@@ -28,3 +28,7 @@ move airchip.service file to /etc/systemd/system
 sudo chmod a+x busad.service
 sudo chmod a+x bus_ad.py
 ```
+
+```
+sudo systemctl enable airchip
+```
