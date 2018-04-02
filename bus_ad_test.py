@@ -6,6 +6,7 @@ import subprocess
 import sys
 import os
 import datetime
+import time
 
 try:
     from gi.repository import GObject
@@ -51,29 +52,29 @@ def wpa_file(ssid,psk):
     cmd = 'mv wifi.conf ' + wpa_supplicant_conf
     cmd_result = ""
     cmd_result = os.system(cmd)
-    print cmd + " - " + str(cmd_result)
+    print(cmd + " - " + str(cmd_result))
 
 
     # restart wifi adapter
     cmd = sudo_mode + 'ifdown wlan0'
     cmd_result = os.system(cmd)
-    print cmd + " - " + str(cmd_result)
+    print(cmd + " - " + str(cmd_result))
 
     time.sleep(2)
 
     cmd = sudo_mode + 'ifup wlan0'
     cmd_result = os.system(cmd)
-    print cmd + " - " + str(cmd_result)
+    print(cmd + " - " + str(cmd_result))
 
     time.sleep(10)
 
     cmd = 'iwconfig wlan0'
     cmd_result = os.system(cmd)
-    print cmd + " - " + str(cmd_result)
+    print(cmd + " - " + str(cmd_result))
 
     cmd = 'ifconfig wlan0'
     cmd_result = os.system(cmd)
-    print cmd + " - " + str(cmd_result)
+    print(cmd + " - " + str(cmd_result))
 
     p = subprocess.Popen(['ifconfig', 'wlan0'], stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE)
