@@ -49,6 +49,7 @@ def wpa_file(ssid,psk):
     f.write('}\n')
     f.close()
 
+    wpa_supplicant_conf = "/etc/wpa_supplicant/wpa_supplicant.conf"
     cmd = 'mv wifi.conf ' + wpa_supplicant_conf
     cmd_result = ""
     cmd_result = os.system(cmd)
