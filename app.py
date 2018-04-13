@@ -23,12 +23,70 @@ mainloop = None
 ble_password = '5860'
 
 
+def disconnect_timer():
+    def timer_target():
+        print('Disconnecting in 3 mins!')
+        logging.info('Disconnecting in 3 mins!')
+        time.sleep(180)
+        disconnect_device()
+
+    thread = threading.Thread(target=timer_target)
+    thread.daemon = True
+    thread.start()
+
+
+def disconnect_device():
+    try:
+        res = subprocess.Popen(['bluetoothctl', 'disconnect'], stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+
+        out, err = res.communicate()
+
+        if out:
+            print("OK> Device Disconnected After 3 min! " + str(res.returncode))
+
+            logging.info("OK> Device Disconnected After 3 min! " + str(res.returncode))
+
+
+        if err:
+            print ("ret> "+str(res.returncode))
+            print ("Error> error while disconnecting bl device "+err.strip())
+
+
+
+            logging.error ("ret> "+str(res.returncode))
+            logging.error ("Error> error while disconnecting bl device "+err.strip())
+
+
+    except OSError as e:
+        print ("OSError > ",e.errno)
+        print ("OSError > ",e.strerror)
+        print ("OSError > ",e.filename)
+
+        logging.error ("OSError > ",e.errno)
+        logging.error ("OSError > ",e.strerror)
+        logging.error ("OSError > ",e.filename)
+
+    except:
+        print ("Error > ",sys.exc_info()[0])
+
+        logging.error ("Error > ",sys.exc_info()[0])
 
 def property_changed(interface, changed, invalidated, path):
-	iface = interface[interface.rfind(".") + 1:]
-	for name, value in changed.items():
-		val = str(value)
-		print("{%s.PropertyChanged} [%s] %s = %s" % (iface, path, name,val))
+    iface = interface[interface.rfind('.')+1:]
+    for name, value in changed.items():
+        val = str(value)
+        if str(name) == "Connected" and val == "1":
+            print("Device Connected! Path : "+path)
+            logging.info("Device Connected! Path : "+path)
+            disconnect_timer()
+        elif str(name) == "Connected" and val == "0":
+            print("Device Disconnected! Path : "+path)
+            logging.info("Device Disconnected! Path : "+path)
+        else:
+            print("{%s.PropertyChanged} [%s] %s = %s" % (iface, path, name,val))
+            logging.info("{%s.PropertyChanged} [%s] %s = %s" % (iface, path, name,val))
+
 
 def reboot():
     cmd = 'sudo reboot'
@@ -195,9 +253,11 @@ class SSIDScanner(Characteristic):
         self.ssid_password=''
         self.local_ip_address='<Not Set>'
 
+
     def ReadValue(self, options):
         #print("Data reading from Center BLE Device " + repr(self.value))
         return self.value
+
 
     def WriteValue(self, value, options):
         if value is not None:
@@ -314,14 +374,16 @@ class SSIDScanner(Characteristic):
                         reply.append(dbus.Byte(i.encode('utf-8')))
 
                 elif str(value[0]) is 'D':
-                    print('D Pressed:Disconnect!!')
+                    print('D Pressed:Deleting Local Cache!!')
+                    logging.info('D Pressed:Deleting Local Cache!!')
+                    self.value = []
+                    self.ssid_list = []
+                    self.list_index = 0
+                    self.service_password =''
+                    self.ssid_password=''
+                    print("Service values are cleared!")
+                    logging.info("Service values are cleared!")
 
-                    logging.info('D Pressed:Disconnect!!')
-
-                    reply = dbus.Array(signature='y')
-                    self.local_ip_address=local_ip_adress()
-                    for i in self.local_ip_address:
-                        reply.append(dbus.Byte(i.encode('utf-8')))
 
 
 
@@ -421,7 +483,7 @@ def main():
     app = BusApplication(bus)
 
     # Create advertisement
-    test_advertisement = BusAdvertisement(bus, 0)
+    airchip_advertisement = BusAdvertisement(bus, 0)
 
     bus.add_signal_receiver(property_changed, bus_name="org.bluez",
 			dbus_interface="org.freedesktop.DBus.Properties",
@@ -437,44 +499,14 @@ def main():
 
 
     # Register advertisement
-    ad_manager.RegisterAdvertisement(test_advertisement.get_path(), {},
+    ad_manager.RegisterAdvertisement(airchip_advertisement.get_path(), {},
                                      reply_handler=register_ad_cb,
                                      error_handler=register_ad_error_cb)
 
 
 
-    # mqttc = mqtt.Client()
-    # mqttc.on_message = on_message
-    # mqttc.on_connect = on_connect
-    # mqttc.on_publish = on_publish
-    # mqttc.on_subscribe = on_subscribe
-    # # Uncomment to enable debug messages
-    # # mqttc.on_log = on_log
-    # mqttc.connect("mqtt.airchip.com.tr", 8883, 60)
-    # mqttc.subscribe("bus/ble/password", 2)
-    #
-    # mqttc.loop_forever()
-    #
-
-    try:
-
-        mainloop.run()
-    except KeyboardInterrupt:
-        display.clear()
-        display.write_display()
-
-def test_main():
-    def example_target():
-        while True:
-            print('this is working!')
-            time.sleep(1)
-
-    thread = threading.Thread(target=example_target)
-    thread.daemon = True
-    thread.start()
-
+    mainloop.run()
 
 if __name__ == '__main__':
 
-    test_main()
     main()
