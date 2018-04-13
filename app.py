@@ -8,6 +8,7 @@ import os
 import datetime
 import time
 import logging
+import threading
 
 try:
     from gi.repository import GObject
@@ -22,6 +23,12 @@ mainloop = None
 ble_password = '5860'
 
 
+
+def property_changed(interface, changed, invalidated, path):
+	iface = interface[interface.rfind(".") + 1:]
+	for name, value in changed.items():
+		val = str(value)
+		print("{%s.PropertyChanged} [%s] %s = %s" % (iface, path, name,val))
 
 def reboot():
     cmd = 'sudo reboot'
@@ -120,7 +127,6 @@ def local_ip_adress():
         print ("Error > ",sys.exc_info()[0])
 
         logging.error ("Error > ",sys.exc_info()[0])
-
 
 
 def ssid_scan():
@@ -307,6 +313,16 @@ class SSIDScanner(Characteristic):
                     for i in self.local_ip_address:
                         reply.append(dbus.Byte(i.encode('utf-8')))
 
+                elif str(value[0]) is 'D':
+                    print('D Pressed:Disconnect!!')
+
+                    logging.info('D Pressed:Disconnect!!')
+
+                    reply = dbus.Array(signature='y')
+                    self.local_ip_address=local_ip_adress()
+                    for i in self.local_ip_address:
+                        reply.append(dbus.Byte(i.encode('utf-8')))
+
 
 
             else:
@@ -407,6 +423,11 @@ def main():
     # Create advertisement
     test_advertisement = BusAdvertisement(bus, 0)
 
+    bus.add_signal_receiver(property_changed, bus_name="org.bluez",
+			dbus_interface="org.freedesktop.DBus.Properties",
+			signal_name="PropertiesChanged",
+			path_keyword="path")
+
     mainloop = GObject.MainLoop()
 
     # Register gatt services
@@ -419,6 +440,8 @@ def main():
     ad_manager.RegisterAdvertisement(test_advertisement.get_path(), {},
                                      reply_handler=register_ad_cb,
                                      error_handler=register_ad_error_cb)
+
+
 
     # mqttc = mqtt.Client()
     # mqttc.on_message = on_message
@@ -440,6 +463,18 @@ def main():
         display.clear()
         display.write_display()
 
+def test_main():
+    def example_target():
+        while True:
+            print('this is working!')
+            time.sleep(1)
+
+    thread = threading.Thread(target=example_target)
+    thread.daemon = True
+    thread.start()
+
 
 if __name__ == '__main__':
+
+    test_main()
     main()
