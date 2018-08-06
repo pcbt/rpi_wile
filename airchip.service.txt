@@ -1,0 +1,13 @@
+[Unit]
+Description=Airchip Bus Advertiser Service
+After=network.target dbus.service
+
+[Service]
+Type=simple
+ExecStart=/home/pi/rpi_wile/app.py
+WorkingDirectory=/home/pi/rpi_wile/
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target
