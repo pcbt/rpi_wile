@@ -1,8 +1,0 @@
-auth = {
-  'username':"airchip1",
-  'password':"yildiz2013"
-}
-
-tls = {
-  'ca_certs':"/etc/ssl/certs/ca-certificates.crt",
-}
